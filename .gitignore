@@ -12,3 +12,6 @@ results/
 *.egg-info/
 build/
 dist/
+
+# SSH keys (security)
+.ssh/

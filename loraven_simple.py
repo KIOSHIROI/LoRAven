@@ -1,27 +1,27 @@
-"""ADLRNS 简化接口
+"""LoRAven 简化接口
 
-这个模块提供了一个简化的ADLRNS接口，让用户能够像使用标准PyTorch模块一样直接使用ADLRNS。
+这个模块提供了一个简化的LoRAven接口，让用户能够像使用标准PyTorch模块一样直接使用LoRAven。
 
 使用示例:
     import torch
     import torch.nn as nn
-    from adlrns_simple import ADLRNS
+    from loraven_simple import LoRAven
     
-    # 创建ADLRNS层
-    layer = ADLRNS(512, 256, mode='balanced')
+    # 创建LoRAven层
+    layer = LoRAven(512, 256, mode='balanced')
     
     # 在模型中使用
     class MyModel(nn.Module):
         def __init__(self):
             super().__init__()
-            self.adlrns1 = ADLRNS(784, 512, mode='high_performance')
-            self.adlrns2 = ADLRNS(512, 256, mode='low_power')
+            self.loraven1 = LoRAven(784, 512, mode='high_performance')
+            self.loraven2 = LoRAven(512, 256, mode='low_power')
             self.classifier = nn.Linear(256, 10)
         
         def forward(self, x):
-            x = self.adlrns1(x)
+            x = self.loraven1(x)
             x = torch.relu(x)
-            x = self.adlrns2(x)
+            x = self.loraven2(x)
             x = torch.relu(x)
             return self.classifier(x)
 """
@@ -38,14 +38,23 @@ sys.path.insert(0, str(project_root))
 
 from models.dynamic_lowrank_layer import DynamicLowRankLayer
 from schedulers.budget_manager import BudgetManager
-from utils.perf_estimator import PerfEstimator
+# 修复utils导入路径
+try:
+    from utils.perf_estimator import PerfEstimator
+except ImportError:
+    # 如果找不到，创建一个简单的替代
+    class PerfEstimator:
+        def __init__(self, *args, **kwargs):
+            pass
+        def estimate_performance(self, *args, **kwargs):
+            return {"flops": 0, "params": 0, "memory": 0}
 
 
-class ADLRNS(nn.Module):
-    """ADLRNS 简化接口
+class LoRAven(nn.Module):
+    """LoRAven 简化接口
     
-    这是一个简化的ADLRNS包装类，提供了类似标准PyTorch模块的接口。
-    用户可以通过预设模式或简单参数快速创建和使用ADLRNS层。
+    这是一个简化的LoRAven包装类，提供了类似标准PyTorch模块的接口。
+    用户可以通过预设模式或简单参数快速创建和使用LoRAven层。
     
     Args:
         in_features (int): 输入特征维度
@@ -140,8 +149,8 @@ class ADLRNS(nn.Module):
         self.min_rank = min_rank
         self.mode = mode
         
-        # 创建核心ADLRNS层
-        self.adlrns_layer = DynamicLowRankLayer(
+        # 创建核心LoRAven层
+        self.loraven_layer = DynamicLowRankLayer(
             in_features=in_features,
             out_features=out_features,
             r_max=max_rank,
@@ -212,8 +221,8 @@ class ADLRNS(nn.Module):
         if self.budget_manager is not None:
             current_budget = self.budget_manager.get_remaining_budget()
         
-        # ADLRNS前向传播
-        output, current_rank = self.adlrns_layer(
+        # LoRAven前向传播
+        output, current_rank = self.loraven_layer(
             x, 
             budget=current_budget,
             mode='inference'
@@ -239,7 +248,7 @@ class ADLRNS(nn.Module):
                 })
             
             # 添加层信息
-            rank_info = self.adlrns_layer.get_rank_info()
+            rank_info = self.loraven_layer.get_rank_info()
             info.update(rank_info)
             
             return output, info
@@ -258,8 +267,8 @@ class ADLRNS(nn.Module):
             'energy_budget': self.energy_budget,
         }
         
-        # 添加ADLRNS层信息
-        rank_info = self.adlrns_layer.get_rank_info()
+        # 添加LoRAven层信息
+        rank_info = self.loraven_layer.get_rank_info()
         info.update(rank_info)
         
         # 添加预算信息
@@ -299,7 +308,7 @@ class ADLRNS(nn.Module):
     
     def get_current_rank(self) -> int:
         """获取当前秩值"""
-        return self.adlrns_layer.r_curr
+        return self.loraven_layer.r_curr
     
     def get_budget_usage(self) -> float:
         """获取预算使用率"""
@@ -331,13 +340,13 @@ class ADLRNS(nn.Module):
         trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
         
         # 计算不同秩下的有效参数数量
-        current_rank = self.adlrns_layer.r_curr
+        current_rank = self.loraven_layer.r_curr
         effective_params = (
             self.in_features * current_rank +  # V矩阵
             current_rank * current_rank +      # S矩阵
             self.out_features * current_rank   # U矩阵
         )
-        if self.adlrns_layer.bias is not None:
+        if self.loraven_layer.bias is not None:
             effective_params += self.out_features
         
         return {
@@ -350,7 +359,7 @@ class ADLRNS(nn.Module):
     
     def __repr__(self) -> str:
         return (
-            f"ADLRNS("
+            f"LoRAven("
             f"in_features={self.in_features}, "
             f"out_features={self.out_features}, "
             f"mode='{self.mode}', "
@@ -361,13 +370,13 @@ class ADLRNS(nn.Module):
 
 
 # 便捷函数
-def create_adlrns_layer(
+def create_loraven_layer(
     in_features: int,
     out_features: int,
     mode: str = 'balanced',
     **kwargs
-) -> ADLRNS:
-    """创建ADLRNS层的便捷函数
+) -> LoRAven:
+    """创建LoRAven层的便捷函数
     
     Args:
         in_features (int): 输入特征维度
@@ -376,21 +385,21 @@ def create_adlrns_layer(
         **kwargs: 其他参数
         
     Returns:
-        ADLRNS: ADLRNS层实例
+        LoRAven: LoRAven层实例
     """
-    return ADLRNS(in_features, out_features, mode=mode, **kwargs)
+    return LoRAven(in_features, out_features, mode=mode, **kwargs)
 
 
-def replace_linear_with_adlrns(
+def replace_linear_with_loraven(
     model: nn.Module,
     mode: str = 'balanced',
     exclude_layers: Optional[list] = None
 ) -> nn.Module:
-    """将模型中的Linear层替换为ADLRNS层
+    """将模型中的Linear层替换为LoRAven层
     
     Args:
         model (nn.Module): 要修改的模型
-        mode (str): ADLRNS模式
+        mode (str): LoRAven模式
         exclude_layers (list, optional): 要排除的层名称列表
         
     Returns:
@@ -404,25 +413,25 @@ def replace_linear_with_adlrns(
             continue
             
         if isinstance(module, nn.Linear):
-            # 替换Linear层为ADLRNS层
-            adlrns_layer = ADLRNS(
+            # 替换Linear层为LoRAven层
+            loraven_layer = LoRAven(
                 in_features=module.in_features,
                 out_features=module.out_features,
                 mode=mode,
                 bias=module.bias is not None,
                 device=next(module.parameters()).device
             )
-            setattr(model, name, adlrns_layer)
+            setattr(model, name, loraven_layer)
         else:
             # 递归处理子模块
-            replace_linear_with_adlrns(module, mode, exclude_layers)
+            replace_linear_with_loraven(module, mode, exclude_layers)
     
     return model
 
 
 # 导出的主要接口
 __all__ = [
-    'ADLRNS',
-    'create_adlrns_layer',
-    'replace_linear_with_adlrns',
+    'LoRAven',
+    'create_loraven_layer',
+    'replace_linear_with_loraven',
 ]

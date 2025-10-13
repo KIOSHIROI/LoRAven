@@ -1,5 +1,5 @@
 """
-ADLRNS 训练器实现
+LoRAven 训练器实现
 """
 
 import torch
@@ -30,9 +30,9 @@ except ImportError:
     from utils.perf_estimator import PerfEstimator
 
 
-class ADLRNSTrainer:
+class LoRAvenTrainer:
     """
-    ADLRNS 训练器
+    LoRAven 训练器
     """
     
     def __init__(
@@ -388,7 +388,7 @@ class ADLRNSTrainer:
         Returns:
             training_history: 训练历史
         """
-        print(f"开始训练 ADLRNS 模型，共 {num_epochs} 个 epoch")
+        print(f"开始训练 LoRAven 模型，共 {num_epochs} 个 epoch")
         
         for epoch in range(self.current_epoch, num_epochs):
             # 训练
@@ -425,9 +425,9 @@ class ADLRNSTrainer:
         return self.training_history
 
 
-def train_adlrns(config_path: str, data_dir: str, save_dir: str) -> Dict[str, Any]:
+def train_loraven(config_path: str, data_dir: str, save_dir: str) -> Dict[str, Any]:
     """
-    训练 ADLRNS 模型的便捷函数
+    训练 LoRAven 模型的便捷函数
     
     Args:
         config_path: 配置文件路径
@@ -449,7 +449,7 @@ def train_adlrns(config_path: str, data_dir: str, save_dir: str) -> Dict[str, An
     model = model.to(device)
     
     # 创建训练器
-    trainer = ADLRNSTrainer(model, config, device, save_dir)
+    trainer = LoRAvenTrainer(model, config, device, save_dir)
     
     # 创建数据加载器
     train_loader, val_loader = create_data_loaders(data_dir, config['data'])

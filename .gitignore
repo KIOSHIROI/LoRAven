@@ -1,1 +1,14 @@
 __pycache__/
+cache/
+exp_*/
+*.zip
+results/
+data/
+results/
+*/task.md
+.cache/
+
+# Python packaging
+*.egg-info/
+build/
+dist/

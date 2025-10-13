@@ -1,5 +1,5 @@
 """
-动态低秩层实现：ADLRNS 的核心模块
+动态低秩层实现：LoRAven 的核心模块
 实现运行时可变秩的权重矩阵分解
 """
 
@@ -7,7 +7,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from typing import Optional, Tuple, Union
+import matplotlib.pyplot as plt
+import numpy as np
+from typing import Optional, Tuple, Union, List
 from .gates import LightweightScorer, GateNetwork
 from .sensitivity_helpers import update_history, calculate_sensitive_rank, apply_adaptive_adjustment, enforce_diversity
 
@@ -98,7 +100,16 @@ class DynamicLowRankLayer(nn.Module):
         self.adaptation_momentum = 0.9  # 自适应动量
         self.min_rank_change = 3  # 增加最小秩变化，减少小幅调整
         
-        # 初始化参数
+        # 新增：奇异值监控相关参数
+        self.singular_values_history = []  # 奇异值历史记录
+        self.top_k_singular_values = 5  # 监控前k个奇异值
+        self.monitor_frequency = 10  # 每10个batch监控一次
+        self.batch_counter = 0
+        
+        # Hebbian-like更新参数
+        self.hebbian_lr = 0.01  # Hebbian学习率
+        self.enable_hebbian = True  # 是否启用Hebbian更新
+        
         self.reset_parameters()
     
     def reset_parameters(self):
@@ -164,6 +175,11 @@ class DynamicLowRankLayer(nn.Module):
         V = self.V_full[:, :r_target]  # (in_features, r_target)
         S = self.S_full[:r_target, :r_target]  # (r_target, r_target)
         
+        # 新增：奇异值监控
+        self.batch_counter += 1
+        if self.batch_counter % self.monitor_frequency == 0:
+            self._monitor_singular_values(U, S, V)
+        
         # 5. 计算低秩矩阵乘法: Y = (U @ S) @ (V^T @ X)^T
         # 使用分步计算以支持批处理，并在每步检查NaN
         try:
@@ -200,7 +216,11 @@ class DynamicLowRankLayer(nn.Module):
         # 8. 更新当前秩
         self.r_curr = r_target
         
-        # 9. 事件触发更新（仅在训练模式下，且满足触发条件）
+        # 9. Hebbian-like更新（仅在训练模式下）
+        if mode == 'training' and self.enable_hebbian:
+            self._hebbian_update(x_processed, y)
+        
+        # 10. 事件触发更新（仅在训练模式下，且满足触发条件）
         if mode == 'training':
             # 只有在满足特定条件时才调用事件触发更新
             # 这里不直接调用，让事件触发更新在内部自行判断是否需要触发
@@ -682,7 +702,177 @@ class DynamicLowRankLayer(nn.Module):
         }
     
     def extra_repr(self) -> str:
-        """额外的字符串表示"""
+        """返回层的额外表示信息"""
         return (f'in_features={self.in_features}, out_features={self.out_features}, '
                 f'r_min={self.r_min}, r_max={self.r_max}, r_curr={self.r_curr}, '
                 f'bias={self.bias is not None}')
+    
+    def _monitor_singular_values(self, U: torch.Tensor, S: torch.Tensor, V: torch.Tensor):
+        """
+        监控当前权重矩阵的奇异值
+        
+        Args:
+            U: 左奇异向量矩阵
+            S: 奇异值对角矩阵
+            V: 右奇异向量矩阵
+        """
+        with torch.no_grad():
+            # 重构当前权重矩阵
+            W = torch.matmul(torch.matmul(U, S), V.T)
+            
+            # 计算奇异值分解
+            try:
+                _, singular_values, _ = torch.svd(W)
+                
+                # 记录前k个奇异值
+                top_k_values = singular_values[:self.top_k_singular_values].cpu().numpy()
+                
+                # 添加到历史记录
+                self.singular_values_history.append({
+                    'batch': self.batch_counter,
+                    'rank': self.r_curr,
+                    'singular_values': top_k_values,
+                    'condition_number': (singular_values[0] / singular_values[-1]).item() if len(singular_values) > 1 else 1.0
+                })
+                
+                # 限制历史记录长度
+                if len(self.singular_values_history) > 100:
+                    self.singular_values_history.pop(0)
+                    
+                # 每50个batch打印一次奇异值信息
+                if self.batch_counter % 50 == 0:
+                    print(f"Batch {self.batch_counter}: Rank={self.r_curr}, "
+                          f"Top-{self.top_k_singular_values} singular values: {top_k_values}")
+                    
+            except Exception as e:
+                print(f"奇异值计算失败: {e}")
+    
+    def _hebbian_update(self, x: torch.Tensor, y: torch.Tensor):
+        """
+        Hebbian-like更新规则：Σ(t+1) = Σ(t) + η * y(t)x(t)^T
+        
+        Args:
+            x: 输入张量 (batch_size, in_features)
+            y: 输出张量 (batch_size, out_features)
+        """
+        with torch.no_grad():
+            # 计算批次平均的外积
+            batch_size = x.size(0)
+            
+            # 计算平均外积：E[y * x^T]
+            outer_product = torch.matmul(y.T, x) / batch_size  # (out_features, in_features)
+            
+            # 对S矩阵进行Hebbian更新
+            # 这里我们更新对角线元素，模拟奇异值的自适应调整
+            if self.r_curr > 0:
+                # 计算当前权重矩阵的近似
+                U_curr = self.U_full[:, :self.r_curr]
+                V_curr = self.V_full[:, :self.r_curr]
+                
+                # 投影外积到当前子空间
+                projected_update = torch.matmul(torch.matmul(U_curr.T, outer_product), V_curr)
+                
+                # 更新S矩阵的对角线元素
+                diagonal_update = torch.diag(projected_update)
+                self.S_full[:self.r_curr, :self.r_curr].diagonal().add_(
+                    self.hebbian_lr * diagonal_update
+                )
+                
+                # 确保奇异值为正
+                self.S_full[:self.r_curr, :self.r_curr].diagonal().clamp_(min=1e-6)
+    
+    def visualize_singular_values(self, save_path: str = None):
+        """
+        可视化奇异值随batch变化的曲线
+        
+        Args:
+            save_path: 保存路径，如果为None则显示图像
+        """
+        if not self.singular_values_history:
+            print("没有奇异值历史记录可供可视化")
+            return
+        
+        # 提取数据
+        batches = [record['batch'] for record in self.singular_values_history]
+        ranks = [record['rank'] for record in self.singular_values_history]
+        condition_numbers = [record['condition_number'] for record in self.singular_values_history]
+        
+        # 提取奇异值矩阵
+        singular_values_matrix = np.array([
+            record['singular_values'] for record in self.singular_values_history
+        ])
+        
+        # 创建图表
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 10))
+        
+        # 1. 奇异值随batch变化
+        for i in range(min(self.top_k_singular_values, singular_values_matrix.shape[1])):
+            ax1.plot(batches, singular_values_matrix[:, i], 
+                    label=f'σ_{i+1}', linewidth=2, marker='o', markersize=3)
+        ax1.set_xlabel('Batch Index')
+        ax1.set_ylabel('Singular Values')
+        ax1.set_title('Top-k Singular Values Evolution')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        ax1.set_yscale('log')
+        
+        # 2. 秩变化
+        ax2.plot(batches, ranks, 'r-', linewidth=2, marker='s', markersize=4)
+        ax2.set_xlabel('Batch Index')
+        ax2.set_ylabel('Current Rank')
+        ax2.set_title('Dynamic Rank Evolution')
+        ax2.grid(True, alpha=0.3)
+        
+        # 3. 条件数变化
+        ax3.plot(batches, condition_numbers, 'g-', linewidth=2, marker='^', markersize=4)
+        ax3.set_xlabel('Batch Index')
+        ax3.set_ylabel('Condition Number')
+        ax3.set_title('Matrix Condition Number')
+        ax3.grid(True, alpha=0.3)
+        ax3.set_yscale('log')
+        
+        # 4. 奇异值比率（相对于最大奇异值）
+        if singular_values_matrix.shape[1] > 1:
+            for i in range(1, min(self.top_k_singular_values, singular_values_matrix.shape[1])):
+                ratio = singular_values_matrix[:, i] / singular_values_matrix[:, 0]
+                ax4.plot(batches, ratio, label=f'σ_{i+1}/σ_1', linewidth=2, marker='o', markersize=3)
+            ax4.set_xlabel('Batch Index')
+            ax4.set_ylabel('Singular Value Ratio')
+            ax4.set_title('Singular Value Ratios (relative to σ_1)')
+            ax4.legend()
+            ax4.grid(True, alpha=0.3)
+            ax4.set_yscale('log')
+        
+        plt.tight_layout()
+        
+        if save_path:
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"奇异值可视化已保存到: {save_path}")
+        else:
+            plt.show()
+        
+        plt.close()
+    
+    def get_singular_values_stats(self) -> dict:
+        """
+        获取奇异值统计信息
+        
+        Returns:
+            包含奇异值统计信息的字典
+        """
+        if not self.singular_values_history:
+            return {}
+        
+        # 提取最新的奇异值
+        latest_record = self.singular_values_history[-1]
+        singular_values = latest_record['singular_values']
+        
+        return {
+            'current_rank': latest_record['rank'],
+            'condition_number': latest_record['condition_number'],
+            'largest_singular_value': float(singular_values[0]) if len(singular_values) > 0 else 0.0,
+            'smallest_singular_value': float(singular_values[-1]) if len(singular_values) > 0 else 0.0,
+            'singular_value_decay': float(singular_values[0] / singular_values[-1]) if len(singular_values) > 1 else 1.0,
+            'total_monitored_batches': len(self.singular_values_history),
+            'hebbian_enabled': self.enable_hebbian
+        }

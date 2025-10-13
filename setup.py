@@ -1,4 +1,4 @@
-"""ADLRNS 安装脚本
+"""LoRAven 安装脚本
 """
 
 from setuptools import setup, find_packages
@@ -14,7 +14,7 @@ def read_readme():
     if readme_path.exists():
         with open(readme_path, "r", encoding="utf-8") as fh:
             return fh.read()
-    return "ADLRNS - Adaptive Dynamic Low-Rank Neural Systems"
+    return "LoRAven - Adaptive Dynamic Low-Rank Neural Systems"
 
 # 读取 requirements.txt
 def read_requirements():
@@ -35,16 +35,16 @@ def get_version():
     return "0.1.0"
 
 setup(
-    name="adlrns",
+    name="loraven",
     version=get_version(),
-    author="ADLRNS Team",
-    author_email="adlrns@example.com",
+    author="LoRAven Team",
+    author_email="loraven@example.com",
     description="Adaptive Dynamic Low-Rank Neural Systems - 自适应动态低秩神经网络系统",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/adlrns/adlrns",
-    packages=["adlrns", "adlrns.models", "adlrns.schedulers", "adlrns.trainers", "adlrns.utils"],
-    package_dir={"adlrns": "."},
+    url="https://github.com/loraven/loraven",
+    packages=["loraven", "loraven.models", "loraven.schedulers", "loraven.trainers", "loraven.utils"],
+    package_dir={"loraven": "."},
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
@@ -76,13 +76,13 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "adlrns-train=adlrns.trainers.train_adlrns:main",
-            "adlrns-test=adlrns.tests.unit_tests:main",
+            "loraven-train=loraven.trainers.train_loraven:main",
+            "loraven-test=loraven.tests.unit_tests:main",
         ],
     },
     include_package_data=True,
     package_data={
-        "adlrns": [
+        "loraven": [
             "*.yaml",
             "*.yml",
             "*.json",

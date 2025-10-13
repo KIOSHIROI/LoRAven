@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 
 class BaseLayer(nn.Module):
     """
-    基础全秩层，作为 ADLRNS 的基线实现
+    基础全秩层，作为 LoRAven 的基线实现
     """
     
     def __init__(

@@ -1,10 +1,10 @@
 """
-ADLRNS: Adaptive Dynamic Low-Rank Neural Systems
+LoRAven: Adaptive Dynamic Low-Rank Neural Systems
 一种面向类脑计算的运行时自适应低秩表示与能耗感知推理框架
 """
 
 __version__ = "0.1.0"
-__author__ = "ADLRNS Team"
+__author__ = "LoRAven Team"
 
 # 核心组件
 from .models.dynamic_lowrank_layer import DynamicLowRankLayer
@@ -14,21 +14,21 @@ from .utils.perf_estimator import PerfEstimator
 
 # 简化接口
 try:
-    from .adlrns_simple import ADLRNS, create_adlrns_layer, replace_linear_with_adlrns
+    from .loraven_simple import LoRAven, create_loraven_layer, replace_linear_with_loraven
     _SIMPLE_AVAILABLE = True
 except ImportError:
     _SIMPLE_AVAILABLE = False
-    ADLRNS = None
-    create_adlrns_layer = None
-    replace_linear_with_adlrns = None
+    LoRAven = None
+    create_loraven_layer = None
+    replace_linear_with_loraven = None
 
 # 训练器和测试工具
 try:
-    from .trainers.train_adlrns import ADLRNSTrainer
+    from .trainers.train_loraven import LoRAvenTrainer
     _TRAINER_AVAILABLE = True
 except ImportError:
     _TRAINER_AVAILABLE = False
-    ADLRNSTrainer = None
+    LoRAvenTrainer = None
 
 # 实验和基准测试
 try:
@@ -53,14 +53,14 @@ __all__ = [
 # 添加简化接口（如果可用）
 if _SIMPLE_AVAILABLE:
     __all__.extend([
-        "ADLRNS",
-        "create_adlrns_layer",
-        "replace_linear_with_adlrns",
+        "LoRAven",
+        "create_loraven_layer",
+        "replace_linear_with_loraven",
     ])
 
 # 添加训练器（如果可用）
 if _TRAINER_AVAILABLE:
-    __all__.append("ADLRNSTrainer")
+    __all__.append("LoRAvenTrainer")
 
 # 添加实验工具（如果可用）
 if _EXPERIMENTS_AVAILABLE:
@@ -71,7 +71,7 @@ if _EXPERIMENTS_AVAILABLE:
 
 # 版本和功能检查函数
 def get_version():
-    """获取ADLRNS版本信息"""
+    """获取LoRAven版本信息"""
     return __version__
 
 def check_features():
@@ -85,8 +85,8 @@ def check_features():
     return features
 
 def print_info():
-    """打印ADLRNS信息"""
-    print(f"ADLRNS v{__version__}")
+    """打印LoRAven信息"""
+    print(f"LoRAven v{__version__}")
     print("Adaptive Dynamic Low-Rank Neural Systems")
     print("自适应动态低秩神经网络系统")
     print("\n可用功能:")

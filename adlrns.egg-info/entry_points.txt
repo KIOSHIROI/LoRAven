@@ -1,3 +1,0 @@
-[console_scripts]
-adlrns-test = adlrns.tests.unit_tests:main
-adlrns-train = adlrns.trainers.train_adlrns:main

@@ -1,10 +1,10 @@
-# ADLRNS: Adaptive Dynamic Low-Rank Neural Systems
+# LoRAven: Adaptive Dynamic Low-Rank Neural Systems
 
 一种面向类脑计算的运行时自适应低秩表示与能耗感知推理框架
 
 ## 概述
 
-ADLRNS（Adaptive Dynamic Low-Rank Neural Systems）是一个创新的神经网络框架，它能够在推理时根据输入复杂度和资源预算动态调整权重矩阵的秩。该框架结合了类脑启发机制（门控、局部化、事件触发更新）和能耗感知的秩调度策略，在延时、内存、吞吐量与任务精度之间实现更优的权衡。
+LoRAven（Adaptive Dynamic Low-Rank Neural Systems）是一个创新的神经网络框架，它能够在推理时根据输入复杂度和资源预算动态调整权重矩阵的秩。该框架结合了类脑启发机制（门控、局部化、事件触发更新）和能耗感知的秩调度策略，在延时、内存、吞吐量与任务精度之间实现更优的权衡。
 
 ## 主要特性
 
@@ -29,8 +29,8 @@ ADLRNS（Adaptive Dynamic Low-Rank Neural Systems）是一个创新的神经网�
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/adlrns.git
-cd adlrns
+git clone https://github.com/your-repo/loraven.git
+cd loraven
 
 # 安装依赖
 pip install -r requirements.txt
@@ -43,7 +43,7 @@ pip install -e .
 
 ```python
 import torch
-from adlrns import DynamicLowRankLayer, RankScheduler, PerfEstimator
+from loraven import DynamicLowRankLayer, RankScheduler, PerfEstimator
 
 # 创建动态低秩层
 layer = DynamicLowRankLayer(
@@ -73,7 +73,7 @@ print(f"当前秩: {current_rank}")
 ### 训练模型
 
 ```python
-from adlrns.trainers import ADLRNSTrainer
+from loraven.trainers import LoRAvenTrainer
 import yaml
 
 # 加载配置
@@ -81,7 +81,7 @@ with open('experiments/exp_config.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
 # 创建训练器
-trainer = ADLRNSTrainer(model, config, device, save_dir='./checkpoints')
+trainer = LoRAvenTrainer(model, config, device, save_dir='./checkpoints')
 
 # 开始训练
 training_history = trainer.train(train_loader, val_loader, num_epochs=100)
@@ -106,7 +106,7 @@ training_history = trainer.train(train_loader, val_loader, num_epochs=100)
 ### 核心组件
 
 ```
-ADLRNS_System/
+LoRAven_System/
 ├─ models/                    # 模型实现
 │  ├─ dynamic_lowrank_layer.py  # 动态低秩层
 │  ├─ gates.py                  # 门控网络
@@ -117,7 +117,7 @@ ADLRNS_System/
 ├─ utils/                     # 工具模块
 │  └─ perf_estimator.py         # 性能估算器
 ├─ trainers/                    # 训练器
-│  └─ train_adlrns.py          # ADLRNS 训练器
+│  └─ train_loraven.py          # LoRAven 训练器
 ├─ experiments/               # 实验配置
 │  ├─ exp_config.yaml          # 实验配置
 │  └─ run_exp.sh               # 运行脚本
@@ -154,7 +154,7 @@ $$\mathcal{E} = \alpha \cdot \frac{\text{FLOPs}(r)}{\text{FLOPs}_{\text{full}}} 
 ```yaml
 # 模型配置
 model:
-  type: adlrns_resnet
+  type: loraven_resnet
   r_min: 4
   r_max: 64
   scorer_hidden: 32
@@ -189,11 +189,11 @@ hardware:
 |------|-----------|-----------|-----------|-----------|
 | ResNet-50 (全秩) | 76.1% | 15.2 | 8.5 | 1024 |
 | ResNet-50 (静态低秩) | 75.3% | 8.7 | 5.2 | 512 |
-| **ADLRNS** | **75.8%** | **6.4** | **4.1** | **384** |
+| **LoRAven** | **75.8%** | **6.4** | **4.1** | **384** |
 
 ### 能耗-精度权衡
 
-ADLRNS 在保持高精度的同时，相比全秩模型实现了：
+LoRAven 在保持高精度的同时，相比全秩模型实现了：
 - **58%** 能耗降低
 - **52%** 延时减少  
 - **62%** 内存节省
@@ -221,8 +221,8 @@ python tests/unit_tests.py
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/adlrns.git
-cd adlrns
+git clone https://github.com/your-repo/loraven.git
+cd loraven
 
 # 创建虚拟环境
 python -m venv venv
@@ -239,11 +239,11 @@ python -m pytest tests/ -v
 
 ## 引用
 
-如果您在研究中使用了 ADLRNS，请引用我们的论文：
+如果您在研究中使用了 LoRAven，请引用我们的论文：
 
 ```bibtex
-@article{adlrns2024,
-  title={ADLRNS: Adaptive Dynamic Low-Rank Neural Systems for Brain-Inspired Computing},
+@article{loraven2024,
+  title={LoRAven: Adaptive Dynamic Low-Rank Neural Systems for Brain-Inspired Computing},
   author={Your Name and Co-authors},
   journal={arXiv preprint},
   year={2024}
@@ -256,14 +256,14 @@ python -m pytest tests/ -v
 
 ## 联系方式
 
-- 项目主页：https://github.com/your-repo/adlrns
-- 问题反馈：https://github.com/your-repo/adlrns/issues
+- 项目主页：https://github.com/your-repo/loraven
+- 问题反馈：https://github.com/your-repo/loraven/issues
 - 邮箱：your-email@example.com
 
 ## 致谢
 
-感谢所有为 ADLRNS 项目做出贡献的研究者和开发者。
+感谢所有为 LoRAven 项目做出贡献的研究者和开发者。
 
 ---
 
-**注意**：ADLRNS 是一个研究项目，主要用于学术研究。在生产环境使用前，请进行充分的测试和验证。
+**注意**：LoRAven 是一个研究项目，主要用于学术研究。在生产环境使用前，请进行充分的测试和验证。

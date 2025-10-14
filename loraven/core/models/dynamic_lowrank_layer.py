@@ -37,6 +37,21 @@ class DynamicLowRankLayer(nn.Module):
         dtype: Optional[torch.dtype] = None
     ):
         super().__init__()
+        
+        # 参数验证
+        if in_features <= 0:
+            raise ValueError(f"in_features must be positive, got {in_features}")
+        if out_features <= 0:
+            raise ValueError(f"out_features must be positive, got {out_features}")
+        if r_min <= 0:
+            raise ValueError(f"r_min must be positive, got {r_min}")
+        if r_max <= 0:
+            raise ValueError(f"r_max must be positive, got {r_max}")
+        if r_max < r_min:
+            raise ValueError(f"r_max ({r_max}) must be >= r_min ({r_min})")
+        if r_max > min(in_features, out_features):
+            raise ValueError(f"r_max ({r_max}) cannot exceed min(in_features, out_features) = {min(in_features, out_features)}")
+        
         self.in_features = in_features
         self.out_features = out_features
         self.r_max = r_max
@@ -138,7 +153,13 @@ class DynamicLowRankLayer(nn.Module):
         mode: str = 'inference'
     ) -> Tuple[torch.Tensor, int]:
         """
-        前向传播
+        前向传播 - 动态低秩矩阵乘法
+        
+        数学公式: 
+        1. 复杂度评分: s(x) = Scorer(x) ∈ [0, 1]
+        2. 秩调度: r(t) = RankScheduler(s(x), budget)
+        3. 低秩分解: W ≈ U @ S @ V^T
+        4. 矩阵乘法: Y = X @ V @ S^T @ U^T
         
         Args:
             x: 输入张量 (batch_size, in_features)

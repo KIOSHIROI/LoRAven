@@ -36,11 +36,11 @@ import sys
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from models.dynamic_lowrank_layer import DynamicLowRankLayer
-from schedulers.budget_manager import BudgetManager
+from .core.models.dynamic_lowrank_layer import DynamicLowRankLayer
+from .core.budget_manager import BudgetManager
 # 修复utils导入路径
 try:
-    from utils.perf_estimator import PerfEstimator
+    from .utils.perf_estimator import PerfEstimator
 except ImportError:
     # 如果找不到，创建一个简单的替代
     class PerfEstimator:

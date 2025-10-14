@@ -153,13 +153,16 @@ class LightweightScorer(nn.Module):
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        前向传播 - 增强的错误处理
+        前向传播 - 计算输入复杂度分数
+        
+        数学公式: s(x) = σ(MLP(x)) ∈ [0, 1]
+        其中 σ 是 sigmoid 激活函数，MLP 是多层感知器
         
         Args:
             x: 输入张量 (batch_size, in_features) 或 (batch_size, seq_len, in_features)
             
         Returns:
-            complexity_scores: 复杂度分数 (batch_size, 1)
+            complexity_scores: 复杂度分数 (batch_size, 1)，范围 [0, 1]
         """
         batch_size = x.size(0)
         device = x.device

@@ -1,30 +1,27 @@
 """
-LoRAven: Adaptive Dynamic Low-Rank Neural Systems
-一种面向类脑计算的运行时自适应低秩表示与能耗感知推理框架
+LoRAven
 """
 
-__version__ = "0.1.0"
-__author__ = "LoRAven Team"
+__version__ = "0.3.0"
+__author__ = "KIOSHIROI"
 
 # 核心组件
-from .models.dynamic_lowrank_layer import DynamicLowRankLayer
-from .models.gates import LightweightScorer, GateNetwork
-from .schedulers.rank_scheduler import RankScheduler
-from .utils.perf_estimator import PerfEstimator
+from .loraven.core.models.dynamic_lowrank_layer import DynamicLowRankLayer
+from .loraven.core.models.gates import LightweightScorer, GateNetwork
+from .loraven.core.rank_scheduler import RankScheduler
+from .loraven.utils.perf_estimator import PerfEstimator
 
 # 简化接口
 try:
-    from .loraven_simple import LoRAven, create_loraven_layer, replace_linear_with_loraven
+    from .loraven.loraven_simple import LoRAven
     _SIMPLE_AVAILABLE = True
 except ImportError:
     _SIMPLE_AVAILABLE = False
     LoRAven = None
-    create_loraven_layer = None
-    replace_linear_with_loraven = None
 
 # 训练器和测试工具
 try:
-    from .trainers.train_loraven import LoRAvenTrainer
+    from .loraven.examples.train_loraven import LoRAvenTrainer
     _TRAINER_AVAILABLE = True
 except ImportError:
     _TRAINER_AVAILABLE = False
@@ -54,8 +51,6 @@ __all__ = [
 if _SIMPLE_AVAILABLE:
     __all__.extend([
         "LoRAven",
-        "create_loraven_layer",
-        "replace_linear_with_loraven",
     ])
 
 # 添加训练器（如果可用）

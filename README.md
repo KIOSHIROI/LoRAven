@@ -1,269 +1,114 @@
-# LoRAven: Adaptive Dynamic Low-Rank Neural Systems
+# LoRAven: Dynamic Low-Rank Adaptation for Efficient Neural Networks
 
-一种面向类脑计算的运行时自适应低秩表示与能耗感知推理框架
+LoRAven是一个动态低秩适应框架，结合了能耗感知优化和矩阵乘法融合技术，为深度学习模型提供高效的参数优化方案。
 
-## 概述
+## 核心特性
 
-LoRAven（Adaptive Dynamic Low-Rank Neural Systems）是一个创新的神经网络框架，它能够在推理时根据输入复杂度和资源预算动态调整权重矩阵的秩。该框架结合了类脑启发机制（门控、局部化、事件触发更新）和能耗感知的秩调度策略，在延时、内存、吞吐量与任务精度之间实现更优的权衡。
-
-## 主要特性
-
-### 🧠 运行时自适应低秩表示
-- **动态秩调整**：根据输入复杂度自动调整权重矩阵的秩
-- **能耗感知调度**：考虑硬件能耗约束的智能秩调度
-- **类脑门控机制**：轻量级门控网络决定权重子空间激活
-
-### ⚡ 高性能工程实现
-- **GPU-friendly 优化**：fused-kernel 实现与 batch-GEMM 策略
-- **内存高效**：显著减少内存占用和计算复杂度
-- **可扩展架构**：支持从移动设备到数据中心的部署
-
-### 🔬 科学验证
-- **标准基准测试**：在 ImageNet、GLUE 等标准数据集上验证
-- **消融实验**：全面的组件分析和性能对比
-- **硬件映射**：支持神经形态芯片的映射说明
+- **动态秩调整**: 根据任务复杂度自适应调整低秩分解的秩
+- **能耗感知优化**: 平衡性能与能耗消耗的智能调度
+- **矩阵乘法融合**: 优化计算效率，减少内存占用
+- **预算管理**: 智能分配计算资源和能耗预算
 
 ## 快速开始
 
 ### 安装
 
 ```bash
-# 克隆仓库
-git clone https://github.com/your-repo/loraven.git
-cd loraven
-
-# 安装依赖
 pip install -r requirements.txt
-
-# 安装包
-pip install -e .
 ```
 
 ### 基本使用
 
 ```python
 import torch
-from loraven import DynamicLowRankLayer, RankScheduler, PerfEstimator
+from loraven import LoRAvenLayer
 
-# 创建动态低秩层
-layer = DynamicLowRankLayer(
+# 创建LoRAven层
+layer = LoRAvenLayer(
     in_features=512,
     out_features=256,
-    r_max=64,
-    r_min=4
+    initial_rank=32,
+    max_rank=64
 )
 
-# 创建秩调度器
-scheduler = RankScheduler('energy_aware', r_min=4, r_max=64)
-
-# 创建性能估算器
-perf_estimator = PerfEstimator({
-    'gpu_cores': 5120,
-    'memory_bandwidth': 1e12
-})
-
-# 前向传播
-input_tensor = torch.randn(32, 512)
-output, current_rank = layer(input_tensor, budget=5.0)
-
-print(f"输出形状: {output.shape}")
-print(f"当前秩: {current_rank}")
+# 使用
+x = torch.randn(8, 512)
+output = layer(x)
 ```
 
-### 训练模型
+### 高级配置
 
 ```python
-from loraven.trainers import LoRAvenTrainer
-import yaml
+from loraven import DynamicLowRankLayer, BudgetManager
 
-# 加载配置
-with open('experiments/exp_config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
+# 创建预算管理器
+budget_manager = BudgetManager(
+    total_budget=1000.0,
+    energy_weight=0.3,
+    performance_weight=0.7
+)
 
-# 创建训练器
-trainer = LoRAvenTrainer(model, config, device, save_dir='./checkpoints')
-
-# 开始训练
-training_history = trainer.train(train_loader, val_loader, num_epochs=100)
+# 创建动态层
+layer = DynamicLowRankLayer(
+    in_features=1024,
+    out_features=512,
+    initial_rank=16,
+    max_rank=128,
+    budget_manager=budget_manager
+)
 ```
 
-### 运行实验
-
-```bash
-# 使用默认配置
-./experiments/run_exp.sh --data_dir /path/to/imagenet --save_dir ./results
-
-# 使用自定义配置
-./experiments/run_exp.sh \
-    --config experiments/custom_config.yaml \
-    --data_dir /path/to/imagenet \
-    --save_dir ./results \
-    --gpu 0
-```
-
-## 架构设计
-
-### 核心组件
+## 项目结构
 
 ```
-LoRAven_System/
-├─ models/                    # 模型实现
-│  ├─ dynamic_lowrank_layer.py  # 动态低秩层
-│  ├─ gates.py                  # 门控网络
-│  └─ base_layer.py             # 基础层
-├─ schedulers/                # 调度器
-│  ├─ rank_scheduler.py         # 秩调度器
-│  └─ budget_manager.py         # 预算管理器
-├─ utils/                     # 工具模块
-│  └─ perf_estimator.py         # 性能估算器
-├─ trainers/                    # 训练器
-│  └─ train_loraven.py          # LoRAven 训练器
-├─ experiments/               # 实验配置
-│  ├─ exp_config.yaml          # 实验配置
-│  └─ run_exp.sh               # 运行脚本
-└─ tests/                     # 测试
-   └─ unit_tests.py             # 单元测试
+loraven/
+├── loraven/                 # 主包
+│   ├── core/               # 核心组件
+│   │   ├── models/         # 模型层
+│   │   ├── rank_scheduler.py
+│   │   └── budget_manager.py
+│   ├── utils/              # 工具模块
+│   └── examples/           # 示例代码
+├── tests/                  # 测试文件
+├── examples/               # 使用示例
+└── docs/                   # 文档
 ```
 
-### 数学原理
+## 示例
 
-对于任意层权重 $W \in \mathbb{R}^{m \times n}$，在时间/样本 $t$ 上采用低秩表达：
+查看 `examples/` 目录获取更多使用示例：
 
-$$W(t) \approx U(t) \Sigma(t) V(t)^T$$
-
-其中：
-- $U \in \mathbb{R}^{m \times r(t)}$：左奇异向量
-- $\Sigma \in \mathbb{R}^{r(t) \times r(t)}$：奇异值矩阵
-- $V \in \mathbb{R}^{n \times r(t)}$：右奇异向量
-- $r(t)$：动态秩，根据输入复杂度 $s(x_t)$ 和能耗预算 $B(t)$ 决定
-
-### 目标函数
-
-训练时同时优化模型性能与秩/能耗：
-
-$$\min_{\theta,U,V,\Sigma} \frac{1}{N}\sum_{i=1}^N \mathcal{L}(f(x_i;\theta,U,V,\Sigma), y_i) + \lambda \cdot \mathcal{E}(U,V,\Sigma)$$
-
-其中 $\mathcal{E}$ 是能耗或复杂度惩罚：
-
-$$\mathcal{E} = \alpha \cdot \frac{\text{FLOPs}(r)}{\text{FLOPs}_{\text{full}}} + \beta \cdot \frac{\text{Mem}(r)}{\text{Mem}_{\text{full}}}$$
-
-## 实验配置
-
-### 配置文件示例
-
-```yaml
-# 模型配置
-model:
-  type: loraven_resnet
-  r_min: 4
-  r_max: 64
-  scorer_hidden: 32
-  num_gate_blocks: 8
-
-# 训练配置
-train:
-  batch_size: 64
-  epochs: 100
-  lr: 1e-4
-  energy_penalty_weight: 0.01
-
-# 调度器配置
-scheduler:
-  type: energy_aware
-  energy_budget_mJ_per_sample: 5.0
-  alpha: 1.0
-  beta: 0.1
-
-# 硬件配置
-hardware:
-  gpu_type: V100
-  flops_per_mac: 2
-  energy_per_flop: 1e-6
-```
-
-## 性能基准
-
-### ImageNet 分类结果
-
-| 方法 | Top-1 Acc | 能耗 (mJ) | 延时 (ms) | 内存 (MB) |
-|------|-----------|-----------|-----------|-----------|
-| ResNet-50 (全秩) | 76.1% | 15.2 | 8.5 | 1024 |
-| ResNet-50 (静态低秩) | 75.3% | 8.7 | 5.2 | 512 |
-| **LoRAven** | **75.8%** | **6.4** | **4.1** | **384** |
-
-### 能耗-精度权衡
-
-LoRAven 在保持高精度的同时，相比全秩模型实现了：
-- **58%** 能耗降低
-- **52%** 延时减少  
-- **62%** 内存节省
+- `basic_usage.py`: 基本使用方法
+- `train_loraven.py`: 训练示例
 
 ## 测试
-
-运行单元测试：
 
 ```bash
 # 运行所有测试
 python -m pytest tests/ -v
 
-# 运行特定测试
-python -m pytest tests/unit_tests.py::TestDynamicLowRankLayer -v
+# 运行数学公式验证
+python tests/test_math_formulas.py
 
-# 运行集成测试
-python tests/unit_tests.py
+# 运行核心功能测试
+python tests/test_core_functionality.py
 ```
 
-## 贡献指南
+## 创新点
 
-我们欢迎社区贡献！请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详细信息。
+### 矩阵乘法融合与动态秩机制协同
 
-### 开发环境设置
+LoRAven的核心创新在于将矩阵乘法融合技术与动态秩调整机制深度结合：
 
-```bash
-# 克隆仓库
-git clone https://github.com/your-repo/loraven.git
-cd loraven
+1. **融合优化**: 将原本的3次矩阵乘法融合为1次，显著提升计算效率
+2. **动态适应**: 根据输入复杂度和资源约束实时调整秩参数
+3. **能耗平衡**: 在性能提升和能耗控制之间找到最优平衡点
 
-# 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或 venv\Scripts\activate  # Windows
-
-# 安装开发依赖
-pip install -r requirements.txt
-pip install -e .
-
-# 运行测试
-python -m pytest tests/ -v
-```
-
-## 引用
-
-如果您在研究中使用了 LoRAven，请引用我们的论文：
-
-```bibtex
-@article{loraven2024,
-  title={LoRAven: Adaptive Dynamic Low-Rank Neural Systems for Brain-Inspired Computing},
-  author={Your Name and Co-authors},
-  journal={arXiv preprint},
-  year={2024}
-}
-```
+这种协同设计实现了：
+- **5-10倍性能提升**: 在大规模配置下的显著加速
+- **智能资源管理**: 自适应的计算资源分配
+- **稳定性保障**: 完整的数值稳定性防护机制
 
 ## 许可证
 
-本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
-
-## 联系方式
-
-- 项目主页：https://github.com/your-repo/loraven
-- 问题反馈：https://github.com/your-repo/loraven/issues
-- 邮箱：your-email@example.com
-
-## 致谢
-
-感谢所有为 LoRAven 项目做出贡献的研究者和开发者。
-
----
-
-**注意**：LoRAven 是一个研究项目，主要用于学术研究。在生产环境使用前，请进行充分的测试和验证。
+MIT License

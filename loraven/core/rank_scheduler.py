@@ -135,6 +135,11 @@ class EnergyAwareRankScheduler(RankScheduler):
         """
         能耗感知的秩调度
         
+        数学公式:
+        1. 基础秩: r_base = r_min + s_avg * (r_max - r_min)
+        2. 能耗约束: r_energy = argmax{r : E(r,x) ≤ budget}
+        3. 平衡优化: r_final = α * r_energy + β * r_complexity
+        
         Args:
             complexity_scores: 复杂度分数 (batch_size,)
             budget: 能耗预算 (mJ/sample)

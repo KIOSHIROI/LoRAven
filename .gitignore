@@ -1,12 +1,15 @@
-__pycache__/
-cache/
 exp_*/
 *.zip
 results/
 data/
 results/
 */task.md
-.cache/
+*cache*/
+# tests/
+todo/
+# docs/
+analysis/
+# pytest.ini
 
 # Python packaging
 *.egg-info/

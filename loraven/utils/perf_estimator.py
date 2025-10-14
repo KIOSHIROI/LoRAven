@@ -75,14 +75,21 @@ class EnergyEstimator(PerfEstimator):
         temperature: float = 65.0
     ) -> float:
         """
-        改进的能耗估算：考虑缓存效应、并行度和硬件特性
+        估算能耗
+        
+        数学公式:
+        E_total = E_compute + E_memory + E_static
+        其中:
+        - E_compute = FLOPs × E_flop × η_parallel × f_DVFS
+        - E_memory = Σ(Access_l × E_l × CacheMiss_l) for l ∈ {L1, L2, DRAM}
+        - E_static = P_idle × t_exec
         
         Args:
             layer_dims: 层维度 (in_features, out_features)
             rank: 秩
-            batch_size: 批大小
-            utilization: GPU利用率 (0-1)
-            temperature: 工作温度 (°C)
+            batch_size: 批次大小
+            utilization: GPU利用率
+            temperature: 温度 (°C)
             
         Returns:
             energy: 估算能耗 (mJ)

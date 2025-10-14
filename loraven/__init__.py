@@ -13,6 +13,13 @@ from .utils.perf_estimator import EnergyEstimator, PerfEstimator
 # 简化接口
 from .loraven_simple import LoRAven
 
+# PEFT适配器 (可选导入)
+try:
+    from . import peft_adapter
+    __all_peft__ = ['peft_adapter']
+except ImportError:
+    __all_peft__ = []
+
 __all__ = [
     # 核心层
     'DynamicLowRankLayer',
@@ -30,4 +37,4 @@ __all__ = [
     
     # 简化接口
     'LoRAven',
-]
+] + __all_peft__

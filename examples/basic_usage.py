@@ -5,6 +5,10 @@ LoRAven基本使用示例
 """
 import sys
 import os
+
+# 设置HuggingFace镜像源以解决国内访问问题
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import torch

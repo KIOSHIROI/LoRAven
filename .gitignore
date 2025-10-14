@@ -1,14 +1,16 @@
-exp_*/
+exp/
 *.zip
 results/
 data/
 results/
 */task.md
 *cache*/
-# tests/
+tests/
 todo/
+examples/
 # docs/
 analysis/
+setup_hf_mirror.py
 # pytest.ini
 
 # Python packaging

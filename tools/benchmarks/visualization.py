@@ -63,7 +63,224 @@ class BenchmarkVisualizer:
                     f.write(f"Throughput: {result.get('throughput', 0)}\n")
                     f.write(f"Latency: {result.get('latency', 0)}\n")
                     f.write("-" * 20 + "\n")
+    def visualize_detailed_metrics(self, detailed_metrics: Dict[str, Any], save_path: Optional[Path] = None) -> Path:
+        """可视化详细指标"""
+        if not MATPLOTLIB_AVAILABLE:
+            logging.warning("Matplotlib not available, skipping detailed metrics visualization")
+            if save_path is None:
+                save_path = self.output_dir / "detailed_metrics.txt"
+            
+            with open(save_path, 'w') as f:
+                f.write("Detailed Metrics Analysis\n")
+                f.write("=" * 30 + "\n")
+                f.write(json.dumps(detailed_metrics, indent=2, ensure_ascii=False))
             return save_path
+        
+        if save_path is None:
+            save_path = self.output_dir / "detailed_metrics.png"
+        
+        # 创建大图表
+        fig = plt.figure(figsize=(20, 16))
+        
+        # 1. 参数效率指标
+        if 'parameter_efficiency' in detailed_metrics:
+            param_eff = detailed_metrics['parameter_efficiency']
+            ax1 = plt.subplot(3, 3, 1)
+            
+            # 参数数量对比
+            labels = ['Total Params', 'Trainable Params']
+            values = [param_eff.get('total_parameters', 0), param_eff.get('trainable_parameters', 0)]
+            colors = ['lightblue', 'orange']
+            
+            bars = ax1.bar(labels, values, color=colors)
+            ax1.set_title('Parameter Efficiency')
+            ax1.set_ylabel('Number of Parameters')
+            
+            # 添加数值标签
+            for bar, value in zip(bars, values):
+                height = bar.get_height()
+                ax1.text(bar.get_x() + bar.get_width()/2., height,
+                        f'{value:,}', ha='center', va='bottom')
+        
+        # 2. 资源消耗指标
+        if 'resource_consumption' in detailed_metrics:
+            resource = detailed_metrics['resource_consumption']
+            ax2 = plt.subplot(3, 3, 2)
+            
+            # FLOPs和内存使用
+            metrics = ['FLOPs (M)', 'Memory (MB)', 'Latency (ms)']
+            values = [
+                resource.get('flops_m', 0),
+                resource.get('memory_usage_mb', 0),
+                resource.get('inference_latency_ms', 0)
+            ]
+            
+            bars = ax2.bar(metrics, values, color=['green', 'red', 'purple'])
+            ax2.set_title('Resource Consumption')
+            ax2.tick_params(axis='x', rotation=45)
+            
+            for bar, value in zip(bars, values):
+                height = bar.get_height()
+                ax2.text(bar.get_x() + bar.get_width()/2., height,
+                        f'{value:.2f}', ha='center', va='bottom')
+        
+        # 3. 动态性指标
+        if 'dynamic_metrics' in detailed_metrics:
+            dynamic = detailed_metrics['dynamic_metrics']
+            ax3 = plt.subplot(3, 3, 3)
+            
+            # Rank统计
+            if 'rank_statistics' in dynamic:
+                rank_stats = dynamic['rank_statistics']
+                rank_values = [
+                    rank_stats.get('mean_rank', 0),
+                    rank_stats.get('std_rank', 0),
+                    rank_stats.get('max_rank', 0),
+                    rank_stats.get('min_rank', 0)
+                ]
+                rank_labels = ['Mean', 'Std', 'Max', 'Min']
+                
+                ax3.bar(rank_labels, rank_values, color='skyblue')
+                ax3.set_title('Rank Statistics')
+                ax3.set_ylabel('Rank Value')
+        
+        # 4. 收敛性指标
+        if 'convergence_stability' in detailed_metrics:
+            conv = detailed_metrics['convergence_stability']
+            ax4 = plt.subplot(3, 3, 4)
+            
+            # 收敛指标
+            conv_metrics = []
+            conv_values = []
+            
+            if 'convergence_step_90' in conv:
+                conv_metrics.append('90% Conv')
+                conv_values.append(conv['convergence_step_90'])
+            if 'convergence_step_95' in conv:
+                conv_metrics.append('95% Conv')
+                conv_values.append(conv['convergence_step_95'])
+            if 'convergence_speed' in conv:
+                conv_metrics.append('Speed')
+                conv_values.append(conv['convergence_speed'])
+            
+            if conv_metrics:
+                ax4.bar(conv_metrics, conv_values, color='lightgreen')
+                ax4.set_title('Convergence Metrics')
+                ax4.tick_params(axis='x', rotation=45)
+        
+        # 5. 可解释性指标
+        if 'interpretability' in detailed_metrics:
+            interp = detailed_metrics['interpretability']
+            ax5 = plt.subplot(3, 3, 5)
+            
+            # Rank分布
+            if 'rank_distribution' in interp:
+                rank_dist = interp['rank_distribution']
+                if 'effective_rank' in rank_dist and 'nominal_rank' in rank_dist:
+                    ranks = ['Nominal', 'Effective']
+                    values = [rank_dist['nominal_rank'], rank_dist['effective_rank']]
+                    
+                    ax5.bar(ranks, values, color=['orange', 'blue'])
+                    ax5.set_title('Rank Distribution')
+                    ax5.set_ylabel('Rank Value')
+        
+        # 6. 泛化性指标
+        if 'generalization' in detailed_metrics:
+            gen = detailed_metrics['generalization']
+            ax6 = plt.subplot(3, 3, 6)
+            
+            # 泛化指标
+            gen_metrics = []
+            gen_values = []
+            
+            if 'model_complexity' in gen:
+                gen_metrics.append('Complexity')
+                gen_values.append(gen['model_complexity'])
+            if 'parameter_efficiency' in gen:
+                gen_metrics.append('Param Eff')
+                gen_values.append(gen['parameter_efficiency'])
+            if 'generalization_score' in gen:
+                gen_metrics.append('Gen Score')
+                gen_values.append(gen['generalization_score'])
+            
+            if gen_metrics:
+                ax6.bar(gen_metrics, gen_values, color='lightcoral')
+                ax6.set_title('Generalization Metrics')
+                ax6.tick_params(axis='x', rotation=45)
+        
+        # 7. 训练历史曲线（如果有的话）
+        if 'training_history' in detailed_metrics:
+            history = detailed_metrics['training_history']
+            ax7 = plt.subplot(3, 3, 7)
+            
+            if isinstance(history, dict) and 'eval_accuracy' in history:
+                steps = list(range(len(history['eval_accuracy'])))
+                ax7.plot(steps, history['eval_accuracy'], 'b-', label='Accuracy')
+                ax7.set_title('Training History')
+                ax7.set_xlabel('Steps')
+                ax7.set_ylabel('Accuracy')
+                ax7.legend()
+                ax7.grid(True, alpha=0.3)
+        
+        # 8. 性能效率散点图
+        ax8 = plt.subplot(3, 3, 8)
+        
+        # 提取关键指标进行效率分析
+        accuracy = detailed_metrics.get('task_performance', {}).get('eval_accuracy', 0)
+        params = detailed_metrics.get('parameter_efficiency', {}).get('trainable_parameters', 1)
+        flops = detailed_metrics.get('resource_consumption', {}).get('flops_m', 1)
+        
+        if accuracy > 0 and params > 0:
+            efficiency = accuracy / (params / 1e6)  # 每百万参数的准确率
+            ax8.scatter([params / 1e6], [accuracy], s=100, c='red', alpha=0.7)
+            ax8.set_xlabel('Trainable Parameters (M)')
+            ax8.set_ylabel('Accuracy')
+            ax8.set_title('Parameter Efficiency')
+            ax8.grid(True, alpha=0.3)
+        
+        # 9. 综合评分雷达图
+        ax9 = plt.subplot(3, 3, 9, projection='polar')
+        
+        # 计算各维度评分（0-1标准化）
+        categories = []
+        scores = []
+        
+        if 'task_performance' in detailed_metrics:
+            categories.append('Performance')
+            scores.append(detailed_metrics['task_performance'].get('eval_accuracy', 0))
+        
+        if 'parameter_efficiency' in detailed_metrics:
+            param_eff = detailed_metrics['parameter_efficiency']
+            if param_eff.get('total_parameters', 0) > 0:
+                categories.append('Efficiency')
+                eff_score = 1 - (param_eff.get('trainable_parameters', 0) / param_eff.get('total_parameters', 1))
+                scores.append(min(1.0, max(0.0, eff_score)))
+        
+        if 'resource_consumption' in detailed_metrics:
+            categories.append('Resource')
+            # 简单的资源评分（越低越好，这里用1-normalized_value）
+            mem_score = 1 - min(1.0, detailed_metrics['resource_consumption'].get('memory_usage_mb', 0) / 1000)
+            scores.append(max(0.0, mem_score))
+        
+        if len(categories) >= 3:
+            # 闭合雷达图
+            angles = np.linspace(0, 2 * np.pi, len(categories), endpoint=False).tolist()
+            scores += scores[:1]  # 闭合
+            angles += angles[:1]  # 闭合
+            
+            ax9.plot(angles, scores, 'o-', linewidth=2, color='blue')
+            ax9.fill(angles, scores, alpha=0.25, color='blue')
+            ax9.set_xticks(angles[:-1])
+            ax9.set_xticklabels(categories)
+            ax9.set_ylim(0, 1)
+            ax9.set_title('Comprehensive Score')
+        
+        plt.suptitle('Detailed Metrics Analysis', fontsize=16, y=0.98)
+        plt.tight_layout()
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        return save_path
         
         if save_path is None:
             save_path = self.output_dir / "performance_comparison.png"
@@ -526,6 +743,17 @@ def create_benchmark_report(results_dir: Path, output_dir: Optional[Path] = None
     # 能耗分析
     energy_path = visualizer.visualize_energy_consumption(results)
     visualizations['energy_consumption'] = energy_path
+    
+    # 详细指标可视化（新增）
+    for result in results:
+        if 'detailed_metrics' in result:
+            method = result.get('method', 'unknown')
+            task = result.get('task', 'unknown')
+            detailed_path = visualizer.visualize_detailed_metrics(
+                result['detailed_metrics'], 
+                output_dir / f"detailed_metrics_{method}_{task}.png"
+            )
+            visualizations[f'detailed_metrics_{method}_{task}'] = detailed_path
     
     # 交互式仪表板
     dashboard_path = visualizer.create_interactive_dashboard(results)

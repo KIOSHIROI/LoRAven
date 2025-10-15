@@ -1,0 +1,66 @@
+global:
+  training:
+    max_seq_length: 128
+    batch_size: 64
+    learning_rate: 2.0e-4
+    num_epochs: 15
+    warmup_epochs: 0.2
+    optimizer: adamw_hf
+    weight_decay: 0.01
+    lr_scheduler: linear
+    use_mixed_precision: true
+    dataloader_num_workers: 4
+    gradient_accumulation_steps: 8
+  peft:
+    lora_alpha: 32
+    lora_dropout: 0.1
+    bias: none
+    target_modules: ["query_proj", "key_proj", "value_proj", "dense"]
+
+models:
+  microsoft/deberta-v3-base:
+    training:
+      batch_size: 64
+      learning_rate: 2.0e-4
+    peft:
+      target_modules: ["query_proj", "key_proj", "value_proj", "dense"]
+    tasks:
+      rte:
+        training:
+          num_epochs: 15
+          learning_rate: 5.0e-4
+          weight_decay: 0.01
+          warmup_epochs: 0.2
+          batch_size: 8
+          gradient_accumulation_steps: 8
+        methods:
+          lora:
+            training:
+              lr_scheduler: linear
+            peft:
+              r: 8
+              lora_alpha: 32
+              lora_dropout: 0.1
+          adalora:
+            peft:
+              r: 8
+              init_r: 12
+              target_r: 4
+              beta1: 0.85
+              beta2: 0.85
+              tinit: 100
+              tfinal: 500
+              deltaT: 10
+              total_step: 1000
+          dora:
+            peft:
+              r: 8
+              use_dora: true
+          loraven:
+            peft:
+              r_min: 4
+              r_max: 16
+              r: 8
+              complexity_scorer_type: lightweight
+              rank_scheduler_type: linear
+              energy_budget: 1000.0

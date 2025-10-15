@@ -1,0 +1,11 @@
+{
+  "lora": {
+    "rte": {
+      "eval_runtime": 3.0363,
+      "eval_samples_per_second": 91.23,
+      "eval_steps_per_second": 2.964,
+      "epoch": 14.923076923076923,
+      "eval_accuracy": 0.851985559566787
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "lora": {
+    "rte": {
+      "eval_runtime": 1.2326,
+      "eval_samples_per_second": 224.721,
+      "eval_steps_per_second": 4.056,
+      "epoch": 1.0,
+      "eval_accuracy": 0.4729241877256318
+    },
+    "sst2": {
+      "eval_runtime": 2.9131,
+      "eval_samples_per_second": 299.336,
+      "eval_steps_per_second": 4.806,
+      "epoch": 1.0,
+      "eval_accuracy": 0.908256880733945
+    }
+  },
+  "full_finetune": {
+    "rte": {
+      "error": "Unsupported method: full_finetune"
+    },
+    "sst2": {
+      "error": "Unsupported method: full_finetune"
+    }
+  }
+}
